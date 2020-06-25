@@ -28,7 +28,7 @@ jobs:
           project: 1
 ```
 
-`project` could be set to any project number, found in the slug when you view your project on github.
+`project` could be set to any project number, found in the slug when you view your project on github. Prefix with <repository>/ or <owner>/<repository>/ if different than the current repo
 
 ## Package for distribution
 
