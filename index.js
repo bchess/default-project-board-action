@@ -1,5 +1,6 @@
 const core = require("@actions/core");
 const fetch = require("node-fetch");
+const { createAppAuth } = require("@octokit/auth-app");
 
 async function github_query(github_token, query, variables) {
   return fetch("https://api.github.com/graphql", {
@@ -17,12 +18,24 @@ async function github_query(github_token, query, variables) {
 
 async function run() {
   try {
+    const appId = core.getInput("app_id");
+    const installation = core.getInput("installation_id");
+    const privateKey = core.getInput("private_key");
+
     const issue = core.getInput("issue");
     const repository = core.getInput("repository");
     const project = core.getInput("project");
-    const github_token = core.getInput("github_token");
     const owner = repository.split("/")[0];
     const name = repository.split("/")[1];
+
+    const auth = createAppAuth({
+        id: appId,
+        privateKey: privateKey,
+        installationId: installation
+    });
+
+    const installationAuthentication = await auth({ type: "installation" });
+    const github_token = installationAuthentication["token"];
 
     const get_issue_id = `
     query($owner:String!, $name:String!, $number:Int!){

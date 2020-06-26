@@ -10,8 +10,14 @@ inputs:
   project:
     description: "project board, use the number in the slug for that board"
     required: true
-  github_token:
-    description: "GitHub token, use {{ secrets.GITHUB_TOKEN }}"
+  private_key:
+    description: "Application Private Key"
+    required: true
+  app_id:
+    description: "Application ID"
+    required: true
+  installation_id:
+    description: "ID for the installation of the application"
     required: true
 runs:
   using: "node12"
