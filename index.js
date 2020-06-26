@@ -46,29 +46,37 @@ async function run() {
     console.log(issue_resp);
     const issue_id = issue_resp["data"]["repository"]["issue"]["id"];
 
-    const get_project_id = `
-    query($owner:String!, $name:String!, $number:Int!){
-      repository(owner: $owner, name: $name) {
-        project(number: $number) {
-          id
+    const project_number = parseInt(project);
+    var project_id;
+
+    if (!Number.isInteger(project_number)) {
+      project_id = project;
+    }
+    else {
+      const get_project_id = `
+      query($owner:String!, $name:String!, $number:Int!){
+        repository(owner: $owner, name: $name) {
+          project(number: $number) {
+            id
+          }
         }
-      }
-    }`;
-    const project_vars = {
-      owner,
-      name,
-      number: parseInt(project)
-    };
+      }`;
+      const project_vars = {
+        owner,
+        name,
+        number: parseInt(project)
+      };
 
-    const project_resp = await github_query(
-      github_token,
-      get_project_id,
-      project_vars
-    );
-    console.log(project_resp);
-    const project_id = project_resp["data"]["repository"]["project"]["id"];
+      const project_resp = await github_query(
+        github_token,
+        get_project_id,
+        project_vars
+      );
+      console.log(project_resp);
+      project_id = project_resp["data"]["repository"]["project"]["id"];
+    }
 
-    console.log(`Adding issue ${issue} to project ${project}`);
+    console.log(`Adding issue ${issue} to project ${project_id}`);
     console.log("");
 
     query = `
