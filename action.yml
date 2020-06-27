@@ -1,9 +1,12 @@
 name: "Add to Project"
-description: "Set a default project board for issues to be addded to."
+description: "Set a default project board for issues or pull requests to be addded to."
 inputs:
   issue:
     description: "issue number, use {{ github.event.issue.number }}"
-    required: true
+    required: false
+  pull_request:
+    description: "pull request number, use {{ github.event.pull_request.number }}"
+    required: false
   repository:
     description: "repository path, use {{ github.repository }}"
     required: true
