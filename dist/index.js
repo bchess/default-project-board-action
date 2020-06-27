@@ -498,6 +498,7 @@ module.exports = require("os");
 const core = __webpack_require__(470);
 const fetch = __webpack_require__(454);
 const { createAppAuth } = __webpack_require__(266);
+const { request } = __webpack_require__(753);
 
 async function github_query(github_token, query, variables) {
   return fetch("https://api.github.com/graphql", {
@@ -516,7 +517,6 @@ async function github_query(github_token, query, variables) {
 async function run() {
   try {
     const appId = core.getInput("app_id");
-    const installation = core.getInput("installation_id");
     const privateKey = core.getInput("private_key");
 
     const issue = core.getInput("issue");
@@ -525,15 +525,27 @@ async function run() {
     const owner = repository.split("/")[0];
     const name = repository.split("/")[1];
 
+    // First look up installation id for the owner (organization)
     const auth = createAppAuth({
         id: appId,
         privateKey: privateKey,
-        installationId: installation
     });
 
-    const installationAuthentication = await auth({ type: "installation" });
+    const { data: installations } = await auth.hook(
+      request.defaults({headers: {accept: "application/vnd.github.machine-man-preview+json" } }),
+      "GET /app/installations"
+    );
+    installationId = installations.find(installation => installation['account']['login'] == owner)["id"]
+    console.log(`Installation for ${owner} is ${installationId}`);
+
+    // Get a token to access this installation
+    const installationAuthentication = await auth({
+        type: "installation",
+        installationId: installationId
+    });
     const github_token = installationAuthentication["token"];
 
+    // Look up the issue ID
     const get_issue_id = `
     query($owner:String!, $name:String!, $number:Int!){
       repository(owner: $owner, name: $name) {
@@ -556,35 +568,31 @@ async function run() {
     console.log(issue_resp);
     const issue_id = issue_resp["data"]["repository"]["issue"]["id"];
 
+    // Look up the project ID
     const project_number = parseInt(project);
-    var project_id;
 
-    if (!Number.isInteger(project_number)) {
-      project_id = project;
-    }
-    else {
-      const get_project_id = `
-      query($owner:String!, $name:String!, $number:Int!){
-        repository(owner: $owner, name: $name) {
-          project(number: $number) {
+    const get_project_id = `
+    query($organization:String!, $project:String!){
+      organization(login: $organization) {
+        projects( search: $project, first: 10, states: [OPEN] ) {
+          nodes {
             id
           }
         }
-      }`;
-      const project_vars = {
-        owner,
-        name,
-        number: parseInt(project)
-      };
+      }
+    }`;
+    const project_vars = {
+      organization: owner,
+      project
+    };
 
-      const project_resp = await github_query(
-        github_token,
-        get_project_id,
-        project_vars
-      );
-      console.log(project_resp);
-      project_id = project_resp["data"]["repository"]["project"]["id"];
-    }
+    const project_resp = await github_query(
+      github_token,
+      get_project_id,
+      project_vars
+    );
+    console.log(project_resp);
+    const project_id = project_resp["data"]["organization"]["projects"]["nodes"][0]["id"];
 
     console.log(`Adding issue ${issue} to project ${project_id}`);
     console.log("");
